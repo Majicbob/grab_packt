@@ -4,6 +4,8 @@ require('dotenv').load({
 
 var request = require('request');
 var cheerio = require('cheerio');
+var fs      = require('fs');
+
 var loginDetails = {
     email: process.env.PACKT_EMAIL,
     password: process.env.PACKT_PASSWORD,
@@ -21,6 +23,15 @@ request = request.defaults({
     jar: true
 });
 
+var download = function(url, dest, cb) {
+    console.log('----------- Download Started -------------');
+    var file = fs.createWriteStream(dest);
+    request(url).pipe(file);
+    file.on('finish', function() {
+        file.close(cb);
+    });
+}
+
 console.log('----------- Packt Grab Started -----------');
 request(url, function(err, res, body) {
     if (err) {
@@ -29,9 +40,10 @@ request(url, function(err, res, body) {
         return;
     }
 
-    var $ = cheerio.load(body);
-    getBookUrl = $("a.twelve-days-claim").attr("href");
-    bookTitle = $(".dotd-title").text().trim();
+    var $         = cheerio.load(body);
+    getBookUrl    = $("a.twelve-days-claim").attr("href");
+    bookId        = getBookUrl.match(/claim\/(.*)\//)[1];
+    bookTitle     = $(".dotd-title").text().trim();
     var newFormId = $("input[type='hidden'][id^=form][value^=form]").val();
 
     if (newFormId) {
@@ -69,8 +81,15 @@ request(url, function(err, res, body) {
             var $ = cheerio.load(body);
 
             console.log('Book Title: ' + bookTitle);
+            console.log('Book ID: ' + bookId);
             console.log('Claim URL: https://www.packtpub.com' + getBookUrl);
             console.log('----------- Packt Grab Done --------------');
+
+            var pdfUrl = 'https://www.packtpub.com/ebook_download/' + bookId + '/pdf';
+            var fileName = bookTitle + '.pdf';
+            download(pdfUrl, fileName, function() {
+                console.log('----------- Download Done ----------------');
+            })
         });
     });
 });
