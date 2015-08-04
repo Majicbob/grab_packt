@@ -4,6 +4,8 @@ require('dotenv').load({
 
 var request = require('request');
 var cheerio = require('cheerio');
+var moment  = require('moment');
+
 var loginDetails = {
     email: process.env.PACKT_EMAIL,
     password: process.env.PACKT_PASSWORD,
@@ -21,11 +23,18 @@ request = request.defaults({
     jar: true
 });
 
-console.log('----------- Packt Grab Started -----------');
+// wrapper for log, easily add timestamp and/or other destinations
+function log(msg) {
+    var now = moment().format('YYYY-MM-DD HHSS');
+    var msg = '[' + now + '] ' + msg;
+    console.log(msg);
+}
+
+log('----------- Packt Grab Started -----------');
 request(url, function(err, res, body) {
     if (err) {
         console.error('Request failed');
-        console.log('----------- Packt Grab Done --------------');
+        log('----------- Packt Grab Done --------------');
         return;
     }
 
@@ -47,30 +56,30 @@ request(url, function(err, res, body) {
     }, function(err, res, body) {
         if (err) {
             console.error('Login failed');
-            console.log('----------- Packt Grab Done --------------');
+            log('----------- Packt Grab Done --------------');
             return;
         };
         var $ = cheerio.load(body);
         var loginFailed = $("div.error:contains('"+loginError+"')");
         if (loginFailed.length) {
             console.error('Login failed, please check your email address and password');
-            console.log('Login failed, please check your email address and password');
-            console.log('----------- Packt Grab Done --------------');
+            log('Login failed, please check your email address and password');
+            log('----------- Packt Grab Done --------------');
             return;
         }
 
         request('https://www.packtpub.com' + getBookUrl, function(err, res, body) {
             if (err) {
                 console.error('Request Error');
-                console.log('----------- Packt Grab Done --------------');
+                log('----------- Packt Grab Done --------------');
                 return;
             }
 
             var $ = cheerio.load(body);
 
-            console.log('Book Title: ' + bookTitle);
-            console.log('Claim URL: https://www.packtpub.com' + getBookUrl);
-            console.log('----------- Packt Grab Done --------------');
+            log('Book Title: ' + bookTitle);
+            log('Claim URL: https://www.packtpub.com' + getBookUrl);
+            log('----------- Packt Grab Done --------------');
         });
     });
 });
