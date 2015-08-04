@@ -5,6 +5,7 @@ require('dotenv').load({
 var request = require('request');
 var cheerio = require('cheerio');
 var fs      = require('fs');
+var moment  = require('moment');
 
 var loginDetails = {
     email: process.env.PACKT_EMAIL,
@@ -27,17 +28,24 @@ function download(url, dest, cb) {
     var file = fs.createWriteStream(dest);
     request(url).pipe(file);
     file.on('finish', function() {
-        console.log('Downloaded ' + dest);
+        log('Downloaded ' + dest);
         file.close(cb);
     });
 }
 
+// wrapper for log, easily add timestamp and/or other destinations
+function log(msg) {
+	var now = moment().format('YYYY-MM-DD HHSS');
+	var msg = '[' + now + '] ' + msg;
+	console.log(msg);
+}
+
 function grab() {
-    console.log('----------- Packt Grab Started -----------');
+    log('----------- Packt Grab Started -----------');
     request(url, function(err, res, body) {
         if (err) {
             console.error('Request failed');
-            console.log('----------- Packt Grab Done --------------');
+            log('----------- Packt Grab Done --------------');
             return;
         }
 
@@ -60,36 +68,36 @@ function grab() {
         }, function(err, res, body) {
             if (err) {
                 console.error('Login failed');
-                console.log('----------- Packt Grab Done --------------');
+                log('----------- Packt Grab Done --------------');
                 return;
             };
             var $ = cheerio.load(body);
             var loginFailed = $("div.error:contains('"+loginError+"')");
             if (loginFailed.length) {
                 console.error('Login failed, please check your email address and password');
-                console.log('Login failed, please check your email address and password');
-                console.log('----------- Packt Grab Done --------------');
+                log('Login failed, please check your email address and password');
+                log('----------- Packt Grab Done --------------');
                 return;
             }
 
             request('https://www.packtpub.com' + getBookUrl, function(err, res, body) {
                 if (err) {
                     console.error('Request Error');
-                    console.log('----------- Packt Grab Done --------------');
+                    log('----------- Packt Grab Done --------------');
                     return;
                 }
 
                 var $ = cheerio.load(body);
 
-                console.log('Book Title: ' + bookTitle);
-                console.log('Book ID: ' + bookId);
-                console.log('Claim URL: https://www.packtpub.com' + getBookUrl);
-                console.log('----------- Packt Grab Done --------------');
+                log('Book Title: ' + bookTitle);
+                log('Book ID: ' + bookId);
+                log('Claim URL: https://www.packtpub.com' + getBookUrl);
+                log('----------- Packt Grab Done --------------');
 
                 var pdfUrl = 'https://www.packtpub.com/ebook_download/' + bookId + '/pdf';
                 var fileName = bookTitle + '.pdf';
                 download(pdfUrl, fileName, function() {
-                    console.log('----------- Download Done ----------------');
+                    log('----------- Download Done ----------------');
                 })
             });
         });
@@ -99,11 +107,11 @@ function grab() {
 function downloadAll() {
     var ebooksUrl = 'https://www.packtpub.com/account/my-ebooks';
 
-    console.log('--------- Download All Started -----------');
+    log('--------- Download All Started -----------');
     request(ebooksUrl, function(err, res, body) {
         if (err) {
             console.error('Request failed');
-            console.log('----------- Packt Grab Done --------------');
+            log('----------- Packt Grab Done --------------');
             return;
         }
 
@@ -123,7 +131,7 @@ function downloadAll() {
         }, function(err, res, body) {
             if (err) {
                 console.error('Login failed');
-                console.log('----------- Packt Grab Done --------------');
+                log('----------- Packt Grab Done --------------');
                 return;
             };
 
@@ -131,22 +139,22 @@ function downloadAll() {
             var loginFailed = $("div.error:contains('"+loginError+"')");
             if (loginFailed.length) {
                 console.error('Login failed, please check your email address and password');
-                console.log('Login failed, please check your email address and password');
-                console.log('----------- Packt Grab Done --------------');
+                log('Login failed, please check your email address and password');
+                log('----------- Packt Grab Done --------------');
                 return;
             }
 
             request(ebooksUrl, function(err, res, body) {
                 if (err) {
                     console.error('Request Error');
-                    console.log('----------- Packt Grab Done --------------');
+                    log('----------- Packt Grab Done --------------');
                     return;
                 }
 
                 var $ = cheerio.load(body);
                 var $ebooks = $('.product-line[nid]');
 
-                console.log('Downloading ' + $ebooks.length + ' books.');
+                log('Downloading ' + $ebooks.length + ' books.');
 
                 var bookId, pdfUrl, fileName, bookTitle, $book;
                 $ebooks.each(function(i, element) {
@@ -174,5 +182,5 @@ else if (args[0] === 'download-all') {
     downloadAll();
 }
 else {
-    console.log('Invalid argument');
+    log('Invalid argument');
 }
